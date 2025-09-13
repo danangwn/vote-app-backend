@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: voteapp_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: vote-app
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vote-app-backend:latest
+    container_name: voteapp_backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    environment:
+      # Use the internal compose network hostname 'mongo' to reach the db
+      - MONGODB_URI=mongodb://mongo:27017/vote-app
+      - PORT=4000
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      - NODE_ENV=production
+    volumes:
+      - ./:/usr/src/app:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --timeout=3 http://localhost:4000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo_data:
