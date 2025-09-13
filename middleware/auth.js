@@ -1,4 +1,3 @@
-// backend/middleware/auth.js
 const jwt = require('jsonwebtoken');
 const BlacklistedToken = require('../models/BlacklistedToken');
 const User = require('../models/user');
@@ -16,15 +15,10 @@ async function requireAuth(req, res, next) {
     }
 
     const token = authHeader.split(' ')[1];
-
-    // check blacklist
     const black = await BlacklistedToken.findOne({ token });
     if (black) return res.status(401).json({ message: 'Token is invalidated (logged out)' });
-
-    // verify
     const payload = jwt.verify(token, jwtSecret);
 
-    // attach user (id + role) to req
     const user = await User.findById(payload.id).select('-password');
     if (!user) return res.status(401).json({ message: 'User not found' });
 

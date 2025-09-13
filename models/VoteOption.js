@@ -1,4 +1,3 @@
-// backend/models/VoteOption.js
 const mongoose = require('mongoose');
 
 const voteOptionSchema = new mongoose.Schema({

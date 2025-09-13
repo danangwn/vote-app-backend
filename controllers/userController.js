@@ -1,4 +1,3 @@
-// backend/controllers/userController.js
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -18,7 +17,6 @@ function sanitizeUser(userDoc) {
 
 exports.register = async (req, res) => {
   try {
-    // validation
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
@@ -68,11 +66,8 @@ exports.logout = async (req, res) => {
   try {
     const token = req.token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
     if (!token) return res.status(400).json({ message: 'Token required' });
-
-    // decode token to get expiry
     const decoded = jwt.decode(token);
     if (!decoded || !decoded.exp) {
-      // if no exp, still blacklist but set short expiry
       const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
       await BlacklistedToken.create({ token, expiresAt });
     } else {
@@ -86,10 +81,8 @@ exports.logout = async (req, res) => {
   }
 };
 
-// List users (with pagination & optional search)
 exports.listUsers = async (req, res) => {
   try {
-    // only admins can list; middleware should check that
     const { page = 1, limit = 20, q } = req.query;
     const filter = {};
     if (q) {
@@ -125,8 +118,6 @@ exports.getUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const id = req.params.id;
-
-    // only admin or the user themself can update
     if (req.user.role !== 'admin' && req.user._id.toString() !== id) {
       return res.status(403).json({ message: 'Not allowed to edit this user' });
     }
@@ -155,29 +146,18 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const id = req.params.id;
-
-    // only admin can delete
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin privilege required to delete user' });
     }
-
-    // admin cannot delete themselves
     if (req.user._id.toString() === id) {
       return res.status(403).json({ message: 'You cannot delete your own account' });
     }
-
-    // If the user already voted, do not allow deletion
-    // We use Vote.exists for a lightweight check
     const voted = await Vote.exists({ userId: id });
     if (voted) {
       return res.status(400).json({ message: 'Cannot delete user who has already voted' });
     }
-
-    // Safe to delete
     const user = await User.findByIdAndDelete(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // No vote cleanup required because we blocked deletion when a vote exists.
     return res.json({
       message: 'User deleted',
       userDeleted: { id: user._id.toString(), email: user.email }
