@@ -1,7 +1,9 @@
 // backend/server.js
 require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
+const serverless = require("serverless-http");
+const { connect, mongoose } = require("./lib/mongoose"); // adjust path
+
 const cors = require("cors");
 
 const authRoutes = require("./routes/auth");
@@ -20,23 +22,31 @@ const PORT = process.env.PORT || 4000;
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://localhost:27017/local-vote-app";
 
-  async function ensureConnected() {
+async function ensureConnected() {
   if (mongoose.connection.readyState === 1) {
     return;
   }
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
-  await mongoose.connect(MONGODB_URI, {});
+  await mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    family: 4, // force IPv4 DNS
+    serverSelectionTimeoutMS: 10000,
+  });
 }
 
 if (require.main === module) {
   ensureConnected()
     .then(async () => {
       await ensureMainOptions(); // if needed
-      app.listen(PORT, () => console.log('Connected'));
+      app.listen(PORT, () => console.log("Connected"));
     })
-    .catch(err => { console.error(err); process.exit(1); });
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
 }
 
 const VoteOption = require("./models/VoteOption");
@@ -75,4 +85,3 @@ function escapeRegex(string) {
 }
 
 module.exports = app;
-
