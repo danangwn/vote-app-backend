@@ -11,7 +11,16 @@ const voteRoutes = require("./routes/votes");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.get("/", (req, res) => res.json({ ok: true, message: "Vote app backend" }));
+app.get("/", (req, res) => {
+  const uptimeMs = Date.now() - serverStart; // how long server has been running
+  const uptimeSec = Math.floor(uptimeMs / 1000);
+
+  res.json({
+    ok: true,
+    message: "Vote app backend",
+    timestamp: `${uptimeSec} seconds`,
+  });
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/votes", voteRoutes);
@@ -20,7 +29,7 @@ const PORT = process.env.PORT || 4000;
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://localhost:27017/local-vote-app";
 
-  async function ensureConnected() {
+async function ensureConnected() {
   if (mongoose.connection.readyState === 1) {
     return;
   }
@@ -34,9 +43,12 @@ if (require.main === module) {
   ensureConnected()
     .then(async () => {
       await ensureMainOptions(); // if needed
-      app.listen(PORT, () => console.log('Connected'));
+      app.listen(PORT, () => console.log("Connected"));
     })
-    .catch(err => { console.error(err); process.exit(1); });
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
 }
 
 const VoteOption = require("./models/VoteOption");
@@ -75,4 +87,3 @@ function escapeRegex(string) {
 }
 
 module.exports = app;
-
