@@ -2,7 +2,8 @@
 require("dotenv").config();
 const express = require("express");
 const serverless = require("serverless-http");
-const { connect, mongoose } = require("./lib/mongoose"); // adjust path
+const { connect } = require('./lib/mongoose');
+const mongoose = require('mongoose');
 
 const cors = require("cors");
 
@@ -29,7 +30,7 @@ async function ensureConnected() {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
-  await mongoose.connect(process.env.MONGODB_URI, {
+  await connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     family: 4, // force IPv4 DNS
